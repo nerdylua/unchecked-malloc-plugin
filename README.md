@@ -2,7 +2,7 @@
 
 This repository contains a custom Clang compiler plugin built using AST Matchers. It performs static analysis on C source code to detect instances where dynamic memory allocation (`malloc`, `calloc`, `realloc`) is used without a preceding `NULL` check, preventing potential Segmentation Faults.
 
-## 🚀 Features
+##  Features
 - Matches `CallExpr` nodes for memory allocation functions.
 - Tracks the assigned variables and checks for unsafe dereferences (e.g., `*ptr = 5` or `arr[0] = 10`).
 - Validates the presence of control-flow guards (`if` statements).
@@ -10,7 +10,7 @@ This repository contains a custom Clang compiler plugin built using AST Matchers
 
 ---
 
-## 🛠️ Prerequisites (Linux / WSL2)
+##  Prerequisites (Linux / WSL2)
 To build and run this plugin, you must have the LLVM/Clang development libraries installed.
 
 For Ubuntu/Debian, run:
@@ -22,7 +22,7 @@ sudo apt install build-essential clang llvm-dev libclang-dev clang-tools cmake
 
 ---
 
-## 🏗️ Building the Plugin
+##  Building the Plugin
 
 We use CMake to link against the massive LLVM libraries. Run these commands from the root of the repository:
 
@@ -43,7 +43,7 @@ make
 
 ---
 
-## 💻 Running the Checker
+##  Running the Checker
 
 You can test the plugin against the provided `test.c` file, which contains a mix of safe code, unsafe bugs, and edge cases.
 
@@ -67,7 +67,7 @@ The compiler will analyze `test.c` and spit out warnings exactly where the bugs 
 
 ---
 
-## 🔍 Analysis: Known Limitations (False Negatives)
+## Analysis: Known Limitations (False Negatives)
 
 Because this tool relies on AST (Abstract Syntax Tree) matching rather than full Control Flow Graph (CFG) execution, it has a few blind spots:
 
