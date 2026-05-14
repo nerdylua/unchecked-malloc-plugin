@@ -133,11 +133,12 @@ python3 server.py
 ```
 
 **Features:**
-- Dark-themed code editor with line numbers
-- Warning indicators on affected lines
-- Diagnostic cards with Fix-It suggestions
-- "Apply Fix" button to patch code in-editor
-- Preset test files loadable from dropdown
+- **Results View:** Dark-themed code editor with line numbers, warning indicators, and diagnostic cards with one-click "Apply Fix"
+- **AST View:** Interactive Abstract Syntax Tree visualization
+  - **Graph Mode:** D3-style SVGs with color-coded nodes, pan/zoom, and curved bezier edges
+  - **List Mode:** Collapsible, indented tree structure
+- **Live Metrics:** Real-time execution timings for the Plugin and AST generator shown in the footer
+- **Presets:** Pre-loaded test cases (True Positives and True Negatives) available from the dropdown
 
 ---
 
