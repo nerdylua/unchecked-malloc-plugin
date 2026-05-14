@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MallocGuard — Live Static Analyzer</title>
+    <meta name="description" content="A live web-based Clang AST checker that detects unchecked malloc return values in C code.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <h1>MallocGuard</h1>
+            </div>
+            <span class="subtitle">Live Static Analyzer</span>
+        </div>
+        <div class="header-center">
+            <div class="preset-group">
+                <label for="preset-select">Load Example:</label>
+                <select id="preset-select">
+                    <option value="">— Choose a test file —</option>
+                </select>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="analyze-btn" onclick="runAnalysis()">
+                <span class="btn-icon">▶</span>
+                <span class="btn-text">Analyze</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ── Main Layout ────────────────────────────────────────── -->
+    <main id="app-main">
+        <!-- Code Editor Panel -->
+        <section id="editor-panel" class="panel">
+            <div class="panel-header">
+                <span class="panel-title">📝 Source Code</span>
+                <span class="panel-badge" id="line-count">0 lines</span>
+            </div>
+            <div class="editor-wrapper">
+                <div class="line-numbers" id="line-numbers"></div>
+                <textarea id="code-editor" spellcheck="false"
+                    placeholder="Paste your C code here, or load a preset example...">#include &lt;stdlib.h&gt;
+
+void example() {
+    int *ptr = (int *)malloc(sizeof(int));
+    *ptr = 42;  // Bug: no NULL check!
+}
+</textarea>
+            </div>
+        </section>
+
+        <!-- Results Panel -->
+        <section id="results-panel" class="panel">
+            <div class="panel-header">
+                <span class="panel-title">📊 Analysis Results</span>
+                <span class="panel-badge" id="warning-count">Ready</span>
+            </div>
+            <div id="results-content">
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <p>Click <strong>Analyze</strong> to run the checker</p>
+                    <p class="dim">Or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd></p>
+                </div>
+                <div id="diagnostics-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── Status Bar ─────────────────────────────────────────── -->
+    <footer id="status-bar">
+        <span id="status-text">Ready</span>
+        <span id="status-info">Clang AST Matcher Plugin • Compiler Design Lab</span>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

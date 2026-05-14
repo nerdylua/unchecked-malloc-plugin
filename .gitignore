@@ -1,1 +1,7 @@
 build/
+*.o
+*.so
+__pycache__/
+*.pyc
+.venv/
+project.md
