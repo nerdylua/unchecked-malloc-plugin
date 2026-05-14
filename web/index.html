@@ -7,23 +7,23 @@
     <meta name="description" content="A live web-based Clang AST checker that detects unchecked malloc return values in C code.">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <header id="app-header">
         <div class="header-left">
             <div class="logo">
-                <span class="logo-icon">&#x26A1;</span>
+                <span class="logo-icon">*</span>
                 <h1>MallocGuard</h1>
             </div>
             <span class="subtitle">Live Static Analyzer</span>
         </div>
         <div class="header-center">
             <div class="preset-group">
-                <label for="preset-select">Load Example:</label>
+                <label for="preset-select">Example</label>
                 <select id="preset-select">
-                    <option value="">-- Choose a test file --</option>
+                    <option value="">Choose a test file</option>
                 </select>
             </div>
         </div>
@@ -56,10 +56,13 @@ void example() {
 
         <section id="results-panel" class="panel">
             <div class="panel-header">
-                <span class="panel-title">Analysis Results</span>
+                <div class="tab-group">
+                    <button class="tab active" data-tab="results" onclick="switchTab('results')">Results</button>
+                    <button class="tab" data-tab="ast" onclick="switchTab('ast')">AST</button>
+                </div>
                 <span class="panel-badge" id="warning-count">Ready</span>
             </div>
-            <div id="results-content">
+            <div id="results-content" class="tab-content active">
                 <div class="empty-state" id="empty-state">
                     <div class="empty-icon">?</div>
                     <p>Click <strong>Analyze</strong> to run the checker</p>
@@ -67,12 +70,33 @@ void example() {
                 </div>
                 <div id="diagnostics-list"></div>
             </div>
+            <div id="ast-content" class="tab-content">
+                <div class="empty-state" id="ast-empty">
+                    <div class="empty-icon">{}</div>
+                    <p>Click <strong>Analyze</strong> to view the AST</p>
+                </div>
+                <div id="ast-views" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="graph" onclick="switchAstView('graph')">Graph</button>
+                        <button class="view-btn" data-view="list" onclick="switchAstView('list')">List</button>
+                    </div>
+                    <div id="ast-graph-view" class="ast-view active">
+                        <svg id="ast-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+                    </div>
+                    <div id="ast-list-view" class="ast-view">
+                        <div id="ast-tree"></div>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 
     <footer id="status-bar">
         <span id="status-text">Ready</span>
-        <span id="status-info">Clang AST Matcher Plugin | Compiler Design Lab</span>
+        <div id="status-right" style="display: flex; gap: 16px; align-items: center;">
+            <span id="status-stats" style="color: var(--color-on-dark-soft); font-family: 'JetBrains Mono', monospace;"></span>
+            <span id="status-info">Clang AST Matcher Plugin</span>
+        </div>
     </footer>
 
     <script src="app.js"></script>

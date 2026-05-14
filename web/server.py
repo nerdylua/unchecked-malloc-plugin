@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import subprocess
 import tempfile
 from flask import Flask, request, jsonify, send_from_directory
@@ -51,6 +52,7 @@ def analyze():
         with os.fdopen(fd, 'w') as f:
             f.write(code)
 
+        start_time = time.time()
         result = subprocess.run(
             [
                 'clang',
@@ -64,12 +66,14 @@ def analyze():
             text=True,
             timeout=15
         )
+        exec_time_ms = int((time.time() - start_time) * 1000)
 
         diagnostics = parse_diagnostics(result.stderr, temp_path)
         return jsonify({
             'diagnostics': diagnostics,
             'raw': result.stderr,
-            'returncode': result.returncode
+            'returncode': result.returncode,
+            'time_ms': exec_time_ms
         })
 
     except subprocess.TimeoutExpired:
@@ -80,6 +84,116 @@ def analyze():
         return jsonify({'error': str(e)}), 500
     finally:
         os.unlink(temp_path)
+
+
+@app.route('/ast', methods=['POST'])
+def ast_dump():
+    code = request.json.get('code', '')
+    if not code.strip():
+        return jsonify({'error': 'No code provided'}), 400
+
+    fd, temp_path = tempfile.mkstemp(suffix='.c')
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(code)
+
+        start_time = time.time()
+        result = subprocess.run(
+            ['clang', '-Xclang', '-ast-dump', '-fno-color-diagnostics',
+             '-fsyntax-only', temp_path],
+            capture_output=True, text=True, timeout=15
+        )
+        exec_time_ms = int((time.time() - start_time) * 1000)
+
+        tree = parse_ast_dump(result.stdout, temp_path)
+        return jsonify({'tree': tree, 'raw': result.stdout, 'time_ms': exec_time_ms})
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'AST dump timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        os.unlink(temp_path)
+
+
+def parse_ast_dump(raw, temp_path=''):
+    lines = raw.split('\n')
+    root = {'type': 'TranslationUnitDecl', 'detail': '', 'children': [], 'depth': -1, 'raw': ''}
+    stack = [root]
+
+    temp_basename = os.path.basename(temp_path) if temp_path else ''
+
+    for line in lines:
+        if not line.strip():
+            continue
+
+        depth = 0
+        i = 0
+        while i < len(line) and line[i] in ' |`-':
+            i += 1
+            depth += 1
+        depth = depth // 2
+
+        content = line[i:].strip()
+        if not content:
+            continue
+
+        parts = content.split(' ', 1)
+        node_type = parts[0]
+        raw_detail = parts[1] if len(parts) > 1 else ''
+
+        detail = re.sub(r'0x[0-9a-f]+\s*', '', raw_detail)
+        detail = re.sub(r'<[^>]*>', '', detail).strip()
+        detail = re.sub(r'\s+', ' ', detail).strip()
+
+        if len(detail) > 100:
+            detail = detail[:100] + '...'
+
+        node = {'type': node_type, 'detail': detail, 'children': [], 'depth': depth, 'raw': raw_detail}
+
+        while len(stack) > 1 and stack[-1]['depth'] >= depth:
+            stack.pop()
+
+        stack[-1]['children'].append(node)
+        stack.append(node)
+
+    result = root
+    if root['children']:
+        result = root['children'][0]
+
+    result['children'] = [c for c in result.get('children', [])
+                          if is_user_node(c, temp_basename)]
+
+    strip_meta(result)
+    return result
+
+
+def is_user_node(node, temp_basename):
+    raw = node.get('raw', '')
+
+    if temp_basename and temp_basename in raw:
+        return True
+
+    if 'line:' in raw and '<' in raw:
+        loc = raw[raw.index('<'):raw.index('>')+1] if '>' in raw else ''
+        if '/usr/' in loc or '/lib/' in loc or '/include/' in loc:
+            return False
+        if temp_basename and temp_basename not in loc:
+            return False
+
+    if 'implicit' in raw:
+        return False
+    if '<invalid sloc>' in raw:
+        return False
+
+    return False
+
+
+def strip_meta(node):
+    node.pop('depth', None)
+    node.pop('raw', None)
+    for c in node.get('children', []):
+        strip_meta(c)
 
 
 def parse_diagnostics(stderr, temp_path):
