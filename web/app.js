@@ -1,7 +1,3 @@
-// ============================================================================
-// MallocGuard — Frontend Application Logic
-// ============================================================================
-
 const API_BASE = window.location.origin;
 const editor = document.getElementById('code-editor');
 const lineNumbers = document.getElementById('line-numbers');
@@ -15,13 +11,10 @@ const statusText = document.getElementById('status-text');
 
 let presets = [];
 
-// ── Initialize ─────────────────────────────────────────────────────────────
-
 document.addEventListener('DOMContentLoaded', () => {
     updateLineNumbers();
     loadPresets();
 
-    // Keyboard shortcut: Ctrl+Enter to analyze
     document.addEventListener('keydown', (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
@@ -29,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tab key inserts spaces in editor
     editor.addEventListener('keydown', (e) => {
         if (e.key === 'Tab') {
             e.preventDefault();
@@ -54,8 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ── Line Numbers ───────────────────────────────────────────────────────────
-
 function updateLineNumbers(warningLines = []) {
     const lines = editor.value.split('\n');
     const count = lines.length;
@@ -73,8 +63,6 @@ function syncScroll() {
     lineNumbers.scrollTop = editor.scrollTop;
 }
 
-// ── Presets ─────────────────────────────────────────────────────────────────
-
 async function loadPresets() {
     try {
         const res = await fetch(`${API_BASE}/presets`);
@@ -82,15 +70,14 @@ async function loadPresets() {
         presets.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.name;
-            opt.textContent = `${p.expectWarning ? '⚠' : '✓'} ${p.label}`;
+            const marker = p.expectWarning ? '[TP]' : '[TN]';
+            opt.textContent = `${marker} ${p.label}`;
             presetSelect.appendChild(opt);
         });
     } catch (e) {
         console.warn('Could not load presets:', e);
     }
 }
-
-// ── Analysis ───────────────────────────────────────────────────────────────
 
 async function runAnalysis() {
     const code = editor.value.trim();
@@ -99,7 +86,6 @@ async function runAnalysis() {
         return;
     }
 
-    // UI: loading state
     analyzeBtn.classList.add('loading');
     analyzeBtn.querySelector('.btn-text').textContent = 'Analyzing';
     setStatus('Analyzing...', 'analyzing');
@@ -126,7 +112,7 @@ async function runAnalysis() {
         if (warnCount > 0) {
             setStatus(`Found ${warnCount} warning${warnCount > 1 ? 's' : ''}`, 'error');
         } else {
-            setStatus('Analysis complete — no issues found', 'success');
+            setStatus('Analysis complete - no issues found', 'success');
         }
     } catch (e) {
         showError('Could not connect to the server. Is server.py running?');
@@ -137,8 +123,6 @@ async function runAnalysis() {
     }
 }
 
-// ── Render Results ─────────────────────────────────────────────────────────
-
 function renderResults(data) {
     const { diagnostics, raw } = data;
     diagnosticsList.innerHTML = '';
@@ -147,47 +131,42 @@ function renderResults(data) {
     const warnings = diagnostics.filter(d => d.type === 'warning');
     const warningLines = warnings.map(d => d.line);
 
-    // Update line numbers with warning indicators
     updateLineNumbers(warningLines);
 
-    // Update badge
     if (warnings.length > 0) {
         warningCountBadge.textContent = `${warnings.length} warning${warnings.length > 1 ? 's' : ''}`;
         warningCountBadge.className = 'panel-badge has-warnings';
     } else {
-        warningCountBadge.textContent = 'Clean ✓';
+        warningCountBadge.textContent = 'Clean';
         warningCountBadge.className = 'panel-badge clean';
     }
 
-    // Summary card
     const summary = document.createElement('div');
     if (warnings.length === 0) {
         summary.className = 'summary-card clean';
         summary.innerHTML = `
-            <div class="summary-icon">✅</div>
-            <div class="summary-text">No issues found — code looks safe!</div>
+            <div class="summary-icon">PASS</div>
+            <div class="summary-text">No issues found - code looks safe!</div>
         `;
     } else {
         summary.className = 'summary-card has-issues';
         summary.innerHTML = `
-            <div class="summary-icon">⚠️</div>
+            <div class="summary-icon">!</div>
             <div class="summary-text">${warnings.length} potential null pointer dereference${warnings.length > 1 ? 's' : ''} detected</div>
         `;
     }
     diagnosticsList.appendChild(summary);
 
-    // Diagnostic cards
     diagnostics.forEach((diag, idx) => {
         const card = createDiagCard(diag, idx);
         diagnosticsList.appendChild(card);
     });
 
-    // Raw output toggle
     if (raw && raw.trim()) {
         const rawSection = document.createElement('details');
         rawSection.className = 'raw-toggle';
         rawSection.innerHTML = `
-            <summary>📋 Raw Clang Output</summary>
+            <summary>Raw Clang Output</summary>
             <div class="raw-output">${escapeHtml(raw)}</div>
         `;
         diagnosticsList.appendChild(rawSection);
@@ -199,11 +178,11 @@ function createDiagCard(diag, index) {
     card.className = `diag-card ${diag.type}`;
     card.style.animationDelay = `${index * 0.08}s`;
 
-    const icons = { warning: '⚠️', note: '📝', error: '❌' };
+    const icons = { warning: 'W', note: 'N', error: 'E' };
 
     let html = `
         <div class="diag-header">
-            <span class="diag-icon">${icons[diag.type] || '❓'}</span>
+            <span class="diag-icon">${icons[diag.type] || '?'}</span>
             <span class="diag-type">${diag.type}</span>
             <span class="diag-location">Line ${diag.line}:${diag.col}</span>
         </div>
@@ -214,7 +193,7 @@ function createDiagCard(diag, index) {
         const fixitDisplay = diag.fixit.text.replace(/\\n/g, '\n').trim();
         html += `
             <div class="diag-fixit">
-                <span class="fixit-label">💡 Fix:</span>
+                <span class="fixit-label">Fix:</span>
                 <code class="fixit-code">${escapeHtml(fixitDisplay)}</code>
                 <button class="fixit-apply-btn" onclick="applyFixit(${diag.fixit.startLine}, ${diag.fixit.startCol}, ${diag.fixit.endLine}, ${diag.fixit.endCol}, '${escapeJs(diag.fixit.text)}')">
                     Apply Fix
@@ -227,20 +206,15 @@ function createDiagCard(diag, index) {
     return card;
 }
 
-// ── Apply Fix-It ───────────────────────────────────────────────────────────
-
 function applyFixit(startLine, startCol, endLine, endCol, text) {
     const lines = editor.value.split('\n');
     const fixText = text.replace(/\\n/g, '\n');
 
-    // Convert line:col to string index
-    // Fix-it is an insertion (start == end), so insert at that position
     if (startLine >= 1 && startLine <= lines.length) {
         const lineIdx = startLine - 1;
         const colIdx = startCol - 1;
         const line = lines[lineIdx];
 
-        // Insert the fix-it text at the specified column
         const before = line.substring(0, colIdx);
         const after = line.substring(colIdx);
         lines[lineIdx] = before + fixText + after;
@@ -250,8 +224,6 @@ function applyFixit(startLine, startCol, endLine, endCol, text) {
         setStatus('Fix applied! Re-analyze to verify.', 'success');
     }
 }
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function clearResults() {
     diagnosticsList.innerHTML = '';
@@ -268,7 +240,7 @@ function showError(msg) {
     card.className = 'diag-card error';
     card.innerHTML = `
         <div class="diag-header">
-            <span class="diag-icon">❌</span>
+            <span class="diag-icon">E</span>
             <span class="diag-type">Error</span>
         </div>
         <div class="diag-message">${escapeHtml(msg)}</div>

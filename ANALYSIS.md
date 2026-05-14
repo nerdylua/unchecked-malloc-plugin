@@ -131,11 +131,11 @@ CFG-based approaches with data-flow frameworks.
 
 | Tool | Approach | Catches Aliasing? | Inter-Procedural? |
 |---|---|---|---|
-| **MallocGuard (ours)** | AST Matchers | ❌ | ❌ |
-| `scan-build` (Clang SA) | CFG + Symbolic Execution | ✅ | Partial |
-| `cppcheck` | AST + Data-flow | ✅ | Partial |
-| Facebook Infer | Abstract Interpretation | ✅ | ✅ |
-| Coverity | Advanced Data-flow | ✅ | ✅ |
+| **MallocGuard (ours)** | AST Matchers | No | No |
+| `scan-build` (Clang SA) | CFG + Symbolic Execution | Yes | Partial |
+| `cppcheck` | AST + Data-flow | Yes | Partial |
+| Facebook Infer | Abstract Interpretation | Yes | Yes |
+| Coverity | Advanced Data-flow | Yes | Yes |
 
 Our tool occupies a useful niche: it's **simple, fast, and easy to understand**,
 making it suitable for educational purposes and as a first-pass lint check.

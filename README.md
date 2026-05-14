@@ -1,4 +1,4 @@
-# ⚡ MallocGuard — Clang AST Checker for Unchecked Malloc Returns
+# MallocGuard — Clang AST Checker for Unchecked Malloc Returns
 
 A custom Clang compiler plugin that uses AST Matchers to perform static analysis
 on C source code, detecting instances where dynamic memory allocation (`malloc`,
@@ -13,7 +13,7 @@ on C source code, detecting instances where dynamic memory allocation (`malloc`,
 - **Two allocation patterns** — matches both `int *p = malloc(...)` and `p = malloc(...)`
 - **Context-aware Fix-It hints** — suggests `return`, `return NULL`, or `return 1` based on function signature
 - **Note diagnostics** — points back to the allocation site for easy navigation
-- **Live web UI** — paste C code and see results rendered inline (see [Web Demo](#-web-demo))
+- **Live web UI** — paste C code and see results rendered inline (see [Web Demo](#web-demo))
 
 ---
 
@@ -93,37 +93,36 @@ chmod +x run_tests.sh
 Expected output:
 
 ```
-╔══════════════════════════════════════════════════╗
-║   ⚡ MallocGuard — Automated Test Suite         ║
-╚══════════════════════════════════════════════════╝
+MallocGuard - Automated Test Suite
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 [BUILD] Plugin ready: ./build/MallocCheckerPlugin.so
 
 [TEST] tn1_null_check.c
-  Expected: CLEAN   | Got: CLEAN   | ✓ PASS
+  Expected: CLEAN   | Got: CLEAN   | PASS
 
 [TEST] tn2_shorthand_check.c
-  Expected: CLEAN   | Got: CLEAN   | ✓ PASS
+  Expected: CLEAN   | Got: CLEAN   | PASS
 
 [TEST] tp1_basic_deref.c
-  ⚠  warning: potential null pointer dereference...
-  Expected: WARNING | Got: WARNING | ✓ PASS
+  >  warning: potential null pointer dereference...
+  Expected: WARNING | Got: WARNING | PASS
 
 [TEST] tp2_array_access.c
-  ⚠  warning: potential null pointer dereference...
-  Expected: WARNING | Got: WARNING | ✓ PASS
+  >  warning: potential null pointer dereference...
+  Expected: WARNING | Got: WARNING | PASS
 
 [TEST] tp3_struct_member.c
-  ⚠  warning: potential null pointer dereference...
-  Expected: WARNING | Got: WARNING | ✓ PASS
+  >  warning: potential null pointer dereference...
+  Expected: WARNING | Got: WARNING | PASS
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Results: 5/5 passed ✓
+Results: 5/5 passed
 ```
 
 ---
 
-## 🌐 Web Demo
+## Web Demo
 
 A live web interface for interactive analysis:
 

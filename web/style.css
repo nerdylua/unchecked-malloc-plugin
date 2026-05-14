@@ -1,8 +1,3 @@
-/* ============================================================================
-   MallocGuard — Dark Theme Stylesheet
-   ============================================================================ */
-
-/* ── Reset & Variables ──────────────────────────────────────────────────── */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
@@ -10,24 +5,20 @@
 }
 
 :root {
-    /* Background */
     --bg-primary: #0d1117;
     --bg-secondary: #161b22;
     --bg-tertiary: #1c2333;
     --bg-elevated: #21262d;
 
-    /* Text */
     --text-primary: #e6edf3;
     --text-secondary: #8b949e;
     --text-muted: #484f58;
 
-    /* Accent */
     --accent-blue: #58a6ff;
     --accent-purple: #bc8cff;
     --accent-cyan: #39d2c0;
     --accent-gradient: linear-gradient(135deg, #58a6ff, #bc8cff);
 
-    /* Diagnostic colors */
     --warning-bg: rgba(210, 153, 34, 0.08);
     --warning-border: #d29922;
     --warning-text: #e3b341;
@@ -41,18 +32,15 @@
     --success-border: #3fb950;
     --success-text: #56d364;
 
-    /* Glass */
     --glass-bg: rgba(22, 27, 34, 0.7);
     --glass-border: rgba(48, 54, 61, 0.6);
 
-    /* Layout */
     --header-height: 60px;
     --footer-height: 32px;
     --panel-gap: 2px;
     --radius: 8px;
     --radius-sm: 4px;
 
-    /* Fonts */
     --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
@@ -67,7 +55,6 @@ body {
     overflow: hidden;
 }
 
-/* ── Header ─────────────────────────────────────────────────────────────── */
 #app-header {
     height: var(--header-height);
     background: var(--bg-secondary);
@@ -151,9 +138,7 @@ body {
     transition: border-color 0.2s;
 }
 
-#preset-select:hover {
-    border-color: var(--accent-blue);
-}
+#preset-select:hover { border-color: var(--accent-blue); }
 
 #preset-select:focus {
     outline: none;
@@ -195,18 +180,14 @@ body {
     transition: left 0.5s ease;
 }
 
-#analyze-btn:hover::before {
-    left: 100%;
-}
+#analyze-btn:hover::before { left: 100%; }
 
 #analyze-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(88, 166, 255, 0.3);
 }
 
-#analyze-btn:active {
-    transform: translateY(0);
-}
+#analyze-btn:active { transform: translateY(0); }
 
 #analyze-btn.loading {
     opacity: 0.7;
@@ -224,7 +205,6 @@ body {
     66% { content: '...'; }
 }
 
-/* ── Main Layout ────────────────────────────────────────────────────────── */
 #app-main {
     flex: 1;
     display: flex;
@@ -278,7 +258,6 @@ body {
     border: 1px solid var(--success-border);
 }
 
-/* ── Code Editor ────────────────────────────────────────────────────────── */
 .editor-wrapper {
     flex: 1;
     display: flex;
@@ -308,10 +287,11 @@ body {
 }
 
 .line-numbers .warning-line::before {
-    content: '⚠';
+    content: '!';
     font-size: 10px;
     position: absolute;
     left: 4px;
+    font-weight: 700;
 }
 
 #code-editor {
@@ -330,15 +310,9 @@ body {
     overflow: auto;
 }
 
-#code-editor::placeholder {
-    color: var(--text-muted);
-}
+#code-editor::placeholder { color: var(--text-muted); }
+#code-editor:focus { background: #1a2130; }
 
-#code-editor:focus {
-    background: #1a2130;
-}
-
-/* ── Results Panel ──────────────────────────────────────────────────────── */
 #results-content {
     flex: 1;
     overflow-y: auto;
@@ -378,7 +352,6 @@ body {
     box-shadow: 0 1px 0 var(--glass-border);
 }
 
-/* ── Diagnostic Cards ───────────────────────────────────────────────────── */
 .diag-card {
     border-radius: var(--radius);
     margin-bottom: 10px;
@@ -416,8 +389,31 @@ body {
 }
 
 .diag-icon {
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: var(--font-mono);
     flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.diag-card.warning .diag-icon {
+    background: rgba(210, 153, 34, 0.2);
+    color: var(--warning-text);
+}
+
+.diag-card.note .diag-icon {
+    background: rgba(88, 166, 255, 0.2);
+    color: var(--note-text);
+}
+
+.diag-card.error .diag-icon {
+    background: rgba(248, 81, 73, 0.2);
+    color: var(--error-text);
 }
 
 .diag-type {
@@ -500,7 +496,6 @@ body {
     border-color: var(--success-border);
 }
 
-/* ── Summary Card ───────────────────────────────────────────────────────── */
 .summary-card {
     border-radius: var(--radius);
     padding: 16px;
@@ -521,22 +516,20 @@ body {
 }
 
 .summary-icon {
-    font-size: 32px;
+    font-size: 24px;
+    font-weight: 700;
     margin-bottom: 6px;
+    font-family: var(--font-mono);
 }
 
-.summary-text {
-    font-size: 14px;
-    font-weight: 600;
-}
+.summary-card.clean .summary-icon { color: var(--success-text); }
+.summary-card.has-issues .summary-icon { color: var(--warning-text); }
 
+.summary-text { font-size: 14px; font-weight: 600; }
 .summary-card.clean .summary-text { color: var(--success-text); }
 .summary-card.has-issues .summary-text { color: var(--warning-text); }
 
-/* ── Raw Output Toggle ──────────────────────────────────────────────────── */
-.raw-toggle {
-    margin-top: 16px;
-}
+.raw-toggle { margin-top: 16px; }
 
 .raw-toggle summary {
     font-size: 12px;
@@ -546,9 +539,7 @@ body {
     user-select: none;
 }
 
-.raw-toggle summary:hover {
-    color: var(--text-secondary);
-}
+.raw-toggle summary:hover { color: var(--text-secondary); }
 
 .raw-output {
     margin-top: 8px;
@@ -565,7 +556,6 @@ body {
     overflow-y: auto;
 }
 
-/* ── Status Bar ─────────────────────────────────────────────────────────── */
 #status-bar {
     height: var(--footer-height);
     background: var(--bg-secondary);
@@ -579,46 +569,17 @@ body {
     flex-shrink: 0;
 }
 
-#status-text.analyzing {
-    color: var(--accent-blue);
-}
+#status-text.analyzing { color: var(--accent-blue); }
+#status-text.success { color: var(--success-text); }
+#status-text.error { color: var(--error-text); }
 
-#status-text.success {
-    color: var(--success-text);
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-#status-text.error {
-    color: var(--error-text);
-}
-
-/* ── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--bg-elevated);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
-}
-
-/* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    #app-main {
-        flex-direction: column;
-    }
-    .subtitle {
-        display: none;
-    }
-    .preset-group label {
-        display: none;
-    }
+    #app-main { flex-direction: column; }
+    .subtitle { display: none; }
+    .preset-group label { display: none; }
 }
