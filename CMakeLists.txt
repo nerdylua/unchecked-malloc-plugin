@@ -12,7 +12,7 @@ add_definitions(${LLVM_DEFINITIONS})
 find_package(Clang REQUIRED CONFIG)
 include_directories(${CLANG_INCLUDE_DIRS})
 
-add_library(MallocCheckerPlugin MODULE MallocChecker.cpp)
+add_library(MallocCheckerPlugin MODULE src/MallocChecker.cpp)
 
 target_link_libraries(MallocCheckerPlugin
     PRIVATE

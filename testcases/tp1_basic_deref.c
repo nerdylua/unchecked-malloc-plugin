@@ -1,5 +1,5 @@
 // ============================================================================
-// TEST: True Positive #1 — Basic Pointer Dereference Without Null Check
+// TEST: True Positive #1 - Basic Pointer Dereference Without Null Check
 // ============================================================================
 // EXPECTED: WARNINGS (2 warnings)
 //

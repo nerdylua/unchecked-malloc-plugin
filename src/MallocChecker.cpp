@@ -1,5 +1,5 @@
 // ============================================================================
-// MallocGuard — Clang AST Checker for Unchecked Malloc Return Values
+// MallocGuard - Clang AST Checker for Unchecked Malloc Return Values
 // ============================================================================
 //
 // A Clang plugin that uses AST Matchers to detect calls to malloc(), calloc(),
@@ -16,9 +16,9 @@
 
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
+#include "clang/Basic/Diagnostic.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/Basic/Diagnostic.h"
 
 using namespace clang;
 using namespace clang::ast_matchers;
@@ -26,7 +26,7 @@ using namespace clang::ast_matchers;
 namespace {
 
 // ============================================================================
-// MallocCallback — Invoked for each matched malloc/calloc/realloc usage
+// MallocCallback - Invoked for each matched malloc/calloc/realloc usage
 // ============================================================================
 class MallocCallback : public MatchFinder::MatchCallback {
 public:
@@ -87,7 +87,7 @@ public:
 
         auto DerefMatches = match(findAll(DerefMatcher), *Func->getBody(), *Context);
 
-        if (DerefMatches.empty()) return; // No dereferences — nothing to warn about
+        if (DerefMatches.empty()) return; // No dereferences - nothing to warn about
 
         // =================================================================
         // STEP 2: Find all null-guard if-statements for this variable
@@ -103,7 +103,7 @@ public:
 
         // =================================================================
         // STEP 3: For each dereference, check if a guard exists BEFORE it
-        // This is the key improvement — ordering-aware analysis
+        // This is the key improvement - ordering-aware analysis
         // =================================================================
         DiagnosticsEngine &Diag = Context->getDiagnostics();
 
@@ -183,7 +183,7 @@ public:
 };
 
 // ============================================================================
-// MallocCheckerAction — Plugin entry point that registers AST matchers
+// MallocCheckerAction - Plugin entry point that registers AST matchers
 // ============================================================================
 class MallocCheckerAction : public PluginASTAction {
 protected:

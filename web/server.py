@@ -24,7 +24,7 @@ def static_files(path):
 
 @app.route('/presets', methods=['GET'])
 def get_presets():
-    tests_dir = os.path.join(SCRIPT_DIR, '..', 'tests')
+    tests_dir = os.path.join(SCRIPT_DIR, '..', 'testcases')
     presets = []
     for filename in sorted(os.listdir(tests_dir)):
         if filename.endswith('.c'):

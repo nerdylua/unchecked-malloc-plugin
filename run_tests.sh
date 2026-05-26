@@ -11,7 +11,7 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN="$SCRIPT_DIR/build/MallocCheckerPlugin.so"
-TESTS_DIR="$SCRIPT_DIR/tests"
+TESTS_DIR="$SCRIPT_DIR/testcases"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -21,13 +21,14 @@ echo -e "${CYAN}${BOLD}MallocGuard - Automated Test Suite${NC}"
 echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
+if [ ! -d "$TESTS_DIR" ]; then
+    echo -e "${RED}[TEST] Testcase directory not found: $TESTS_DIR${NC}"
+    exit 1
+fi
+
 if [ ! -f "$PLUGIN" ]; then
     echo -e "${YELLOW}[BUILD]${NC} Plugin not found. Compiling..."
-    mkdir -p "$SCRIPT_DIR/build"
-    cd "$SCRIPT_DIR/build"
-    cmake .. > /dev/null 2>&1
-    make -j$(nproc) 2>&1 | tail -3
-    cd "$SCRIPT_DIR"
+    bash "$SCRIPT_DIR/build.sh" >/dev/null
     if [ ! -f "$PLUGIN" ]; then
         echo -e "${RED}[BUILD] Build failed!${NC}"
         exit 1

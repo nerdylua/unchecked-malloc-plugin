@@ -1,5 +1,5 @@
 // ============================================================================
-// TEST: True Positive #2 — Array Access Without Null Check
+// TEST: True Positive #2 - Array Access Without Null Check
 // ============================================================================
 // EXPECTED: WARNINGS (2 warnings)
 //

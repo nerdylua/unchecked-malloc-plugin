@@ -1,5 +1,5 @@
 // ============================================================================
-// TEST: True Negative #1 — Proper NULL Checks Before Use
+// TEST: True Negative #1 - Proper NULL Checks Before Use
 // ============================================================================
 // EXPECTED: NO WARNINGS (clean)
 //
@@ -32,7 +32,7 @@ void struct_with_guard() {
     Record *rec = (Record *)malloc(sizeof(Record));
     if (rec == NULL) return;
 
-    rec->id = 1;                     // SAFE
+    rec->id = 1;                      // SAFE
     strcpy(rec->name, "Safe Record"); // SAFE
     free(rec);
 }
@@ -47,7 +47,7 @@ void calloc_array_safe() {
     free(arr);
 }
 
-// Case 4: Function that returns a pointer — safe pattern
+// Case 4: Function that returns a pointer - safe pattern
 int *allocate_and_return() {
     int *data = (int *)malloc(sizeof(int) * 10);
     if (data == NULL) return NULL;

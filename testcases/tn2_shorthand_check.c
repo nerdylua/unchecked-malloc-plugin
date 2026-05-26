@@ -1,5 +1,5 @@
 // ============================================================================
-// TEST: True Negative #2 — Shorthand and Idiomatic NULL Checks
+// TEST: True Negative #2 - Shorthand and Idiomatic NULL Checks
 // ============================================================================
 // EXPECTED: NO WARNINGS (clean)
 //
@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// Case 1: Shorthand boolean negation — if (!ptr)
+// Case 1: Shorthand boolean negation - if (!ptr)
 void shorthand_not_check() {
     int *ptr = (int *)malloc(sizeof(int));
     if (!ptr) return;

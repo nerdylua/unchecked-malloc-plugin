@@ -1,5 +1,5 @@
 // ============================================================================
-// TEST: True Positive #3 — Struct Member Access and Ordering Violation
+// TEST: True Positive #3 - Struct Member Access and Ordering Violation
 // ============================================================================
 // EXPECTED: WARNINGS (2 warnings)
 //
@@ -31,6 +31,6 @@ void struct_member_access() {
 // WARNING EXPECTED at: *ptr = 5
 void deref_before_guard() {
     int *ptr = (int *)malloc(sizeof(int));
-    *ptr = 5;                    // BUG: used before the check below
-    if (ptr == NULL) return;     // Too late — crash already happened
+    *ptr = 5;                   // BUG: used before the check below
+    if (ptr == NULL) return;    // Too late; crash already happened
 }

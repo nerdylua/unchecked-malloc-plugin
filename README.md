@@ -1,8 +1,13 @@
-# MallocGuard — Clang AST Checker for Unchecked Malloc Returns
+# MallocGuard: Clang AST Checker for Unchecked Malloc Returns
 
-A custom Clang compiler plugin that uses AST Matchers to perform static analysis
-on C source code, detecting instances where dynamic memory allocation (`malloc`,
-`calloc`, `realloc`) is used without a preceding `NULL` check.
+MallocGuard is a custom Clang/LLVM compiler plugin that uses AST Matchers to
+detect C code where dynamic memory allocation (`malloc`, `calloc`, `realloc`) is
+dereferenced without a preceding `NULL` check.
+
+The project also includes a Flask web app that runs the compiled plugin on any
+pasted C code in real time. The web app shows diagnostics, one-click fix-it
+hints, a visual AST, raw Clang output, and live millisecond timings for both the
+plugin pass and AST generation.
 
 ---
 
@@ -13,7 +18,9 @@ on C source code, detecting instances where dynamic memory allocation (`malloc`,
 - **Two allocation patterns** — matches both `int *p = malloc(...)` and `p = malloc(...)`
 - **Context-aware Fix-It hints** — suggests `return`, `return NULL`, or `return 1` based on function signature
 - **Note diagnostics** — points back to the allocation site for easy navigation
-- **Live web UI** — paste C code and see results rendered inline (see [Web Demo](#web-demo))
+- **Live Flask UI** — paste any C snippet and see plugin results rendered inline
+- **AST visualization** — builds a Clang AST dump and renders graph/list views
+- **Speed metrics** — reports plugin and AST generation time for each run
 
 ---
 
@@ -63,10 +70,8 @@ pip install flask flask-cors
 ## Building the Plugin
 
 ```bash
-# From the project root
-mkdir -p build && cd build
-cmake ..
-make -j$(nproc)
+chmod +x build.sh run.sh run_tests.sh
+./build.sh
 ```
 
 This produces `build/MallocCheckerPlugin.so`.
@@ -78,16 +83,14 @@ This produces `build/MallocCheckerPlugin.so`.
 ### Manual (single file)
 
 ```bash
-clang -Xclang -load -Xclang ./build/MallocCheckerPlugin.so \
-      -Xclang -plugin -Xclang malloc-checker \
-      -fsyntax-only tests/tp1_basic_deref.c
+./run.sh testcases/tp1_basic_deref.c
 ```
 
 ### Automated Test Suite
 
 ```bash
-chmod +x run_tests.sh
-./run_tests.sh
+./run.sh
+# or: ./run_tests.sh
 ```
 
 Expected output:
@@ -97,12 +100,6 @@ MallocGuard - Automated Test Suite
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 [BUILD] Plugin ready: ./build/MallocCheckerPlugin.so
-
-[TEST] tn1_null_check.c
-  Expected: CLEAN   | Got: CLEAN   | PASS
-
-[TEST] tn2_shorthand_check.c
-  Expected: CLEAN   | Got: CLEAN   | PASS
 
 [TEST] tp1_basic_deref.c
   >  warning: potential null pointer dereference...
@@ -116,19 +113,29 @@ MallocGuard - Automated Test Suite
   >  warning: potential null pointer dereference...
   Expected: WARNING | Got: WARNING | PASS
 
+[TEST] tp4_pointer_return_fixit.c
+  >  warning: potential null pointer dereference...
+  Expected: WARNING | Got: WARNING | PASS
+
+[TEST] tn1_null_check.c
+  Expected: CLEAN   | Got: CLEAN   | PASS
+
+[TEST] tn2_shorthand_check.c
+  Expected: CLEAN   | Got: CLEAN   | PASS
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Results: 5/5 passed
+Results: 6/6 passed
 ```
 
 ---
 
 ## Web Demo
 
-A live web interface for interactive analysis:
+A live Flask interface for interactive analysis of arbitrary C code:
 
 ```bash
-cd web
-python3 server.py
+./build.sh
+cd web && python3 server.py
 # Open http://localhost:5000 in your browser
 ```
 
@@ -137,7 +144,7 @@ python3 server.py
 - **AST View:** Interactive Abstract Syntax Tree visualization
   - **Graph Mode:** D3-style SVGs with color-coded nodes, pan/zoom, and curved bezier edges
   - **List Mode:** Collapsible, indented tree structure
-- **Live Metrics:** Real-time execution timings for the Plugin and AST generator shown in the footer
+- **Live Metrics:** Real-time execution timings for the plugin and AST generator shown in the footer
 - **Presets:** Pre-loaded test cases (True Positives and True Negatives) available from the dropdown
 
 ---
@@ -146,11 +153,14 @@ python3 server.py
 
 | File | Type | What It Tests |
 |---|---|---|
-| `tests/tp1_basic_deref.c` | True Positive | `*ptr` dereference, separate assignment |
-| `tests/tp2_array_access.c` | True Positive | `arr[i]` access, `realloc` without check |
-| `tests/tp3_struct_member.c` | True Positive | `ptr->field` access, deref-before-guard |
-| `tests/tn1_null_check.c` | True Negative | Explicit `== NULL`, early return, function return |
-| `tests/tn2_shorthand_check.c` | True Negative | `if (!ptr)`, combined checks, safe realloc |
+| `testcases/tp1_basic_deref.c` | True Positive | `*ptr` dereference, separate assignment |
+| `testcases/tp2_array_access.c` | True Positive | `arr[i]` access, `realloc` without check |
+| `testcases/tp3_struct_member.c` | True Positive | `ptr->field` access, deref-before-guard |
+| `testcases/tp4_pointer_return_fixit.c` | True Positive | pointer-return fix-it should use `return NULL` |
+| `testcases/tn1_null_check.c` | True Negative | Explicit `== NULL`, early return, function return |
+| `testcases/tn2_shorthand_check.c` | True Negative | `if (!ptr)`, combined checks, safe realloc |
+
+See `EVALUATION.md` for metrics, baseline comparison, and testcase rationale.
 
 ---
 
@@ -170,15 +180,22 @@ See [ANALYSIS.md](ANALYSIS.md) for a detailed write-up. In summary:
 
 ```
 cd-lab/
-├── MallocChecker.cpp           # Plugin source (AST matcher + callback)
+├── src/
+│   └── MallocChecker.cpp       # Plugin source (AST matcher + callback)
 ├── CMakeLists.txt              # Build configuration
+├── build.sh                    # Required build script
+├── run.sh                      # Required runner script
 ├── run_tests.sh                # Automated test runner
+├── DESIGN.md                   # Approach and alternatives
+├── IMPLEMENTATION.md           # LLVM/Clang implementation details
+├── EVALUATION.md               # Metrics, comparison, and test cases
 ├── ANALYSIS.md                 # Detailed false-negative analysis
 ├── README.md                   # This file
-├── tests/
+├── testcases/
 │   ├── tp1_basic_deref.c       # True positive: basic *ptr
 │   ├── tp2_array_access.c      # True positive: arr[i]
 │   ├── tp3_struct_member.c     # True positive: struct->field
+│   ├── tp4_pointer_return_fixit.c
 │   ├── tn1_null_check.c        # True negative: proper checks
 │   └── tn2_shorthand_check.c   # True negative: shorthand checks
 ├── web/

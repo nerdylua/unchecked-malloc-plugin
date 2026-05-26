@@ -15,10 +15,7 @@ echo -e "${CYAN}${BOLD}MallocGuard - Demo Launcher${NC}"
 echo ""
 
 echo -e "${YELLOW}[1/3]${NC} Building plugin..."
-mkdir -p build && cd build
-cmake .. > /dev/null 2>&1
-make -j$(nproc) 2>&1 | tail -5
-cd "$SCRIPT_DIR"
+bash build.sh
 
 if [ ! -f "build/MallocCheckerPlugin.so" ]; then
     echo -e "${RED}Build failed! Check your LLVM/Clang installation.${NC}"
