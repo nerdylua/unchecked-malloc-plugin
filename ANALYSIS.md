@@ -1,7 +1,7 @@
 # Analysis: False Negatives and Limitations
 
-This document provides a detailed analysis of what our Clang AST Checker catches,
-what it misses, and why — as required by the assignment deliverables.
+This document provides a detailed analysis of what the Clang AST checker catches,
+what it misses, and why.
 
 ---
 

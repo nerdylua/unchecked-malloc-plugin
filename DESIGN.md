@@ -35,8 +35,8 @@ Clang for an AST dump, and returns both results as JSON for the browser UI.
 
 A Clang Static Analyzer checker would provide stronger path sensitivity and
 could reason about branch-specific guards. It was not chosen because the setup is
-heavier and the assignment focuses on an AST matcher plugin. For this project,
-fast compile-time feedback and understandable matcher code were more important.
+heavier than this project needs. Fast compile-time feedback and understandable
+matcher code were more important.
 
 ### LLVM IR Pass
 

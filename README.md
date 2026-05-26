@@ -183,8 +183,8 @@ cd-lab/
 ├── src/
 │   └── MallocChecker.cpp       # Plugin source (AST matcher + callback)
 ├── CMakeLists.txt              # Build configuration
-├── build.sh                    # Required build script
-├── run.sh                      # Required runner script
+├── build.sh                    # Build script
+├── run.sh                      # Runner script
 ├── run_tests.sh                # Automated test runner
 ├── DESIGN.md                   # Approach and alternatives
 ├── IMPLEMENTATION.md           # LLVM/Clang implementation details

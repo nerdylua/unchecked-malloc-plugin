@@ -7,12 +7,12 @@ The project is evaluated on correctness, coverage, speed, and usability:
 | Metric | Result |
 |---|---|
 | Automated test cases | 6 C files in `testcases/` |
-| Required minimum tests | Satisfied: 6 >= 5 |
+| Test coverage size | 6 cases covering true positives and true negatives |
 | True positive files | 4 files |
 | True negative files | 2 files |
 | Allocation APIs covered | `malloc`, `calloc`, `realloc` |
 | Dereference forms covered | `*ptr`, `ptr[i]`, `ptr->field` |
-| Required script entrypoints | `./build.sh` and `./run.sh` |
+| Script entrypoints | `./build.sh` and `./run.sh` |
 | Realtime UI | Flask app accepts arbitrary pasted C code |
 | AST support | Web app builds and visualizes Clang AST dumps |
 | Speed instrumentation | Plugin and AST timings displayed in milliseconds |
@@ -29,7 +29,7 @@ fixpoint analysis.
 | Naive grep/text search | Can find allocation names but cannot reliably pair variables, guards, and dereferences | Fast but structurally inaccurate |
 | Naive AST checker that only asks "does any guard mention this variable?" | Misses `deref_before_guard`, because a later guard would incorrectly look safe | Simple but not ordering-aware |
 | MallocGuard AST matcher | Catches unchecked direct dereferences and catches deref-before-guard by comparing source locations | Fast and source-aware, but not full data-flow |
-| Clang Static Analyzer / scan-build style CFG analysis | Can catch more path-sensitive and aliasing cases | More complex and heavier than this assignment requires |
+| Clang Static Analyzer / scan-build style CFG analysis | Can catch more path-sensitive and aliasing cases | More complex and heavier than this project needs |
 
 MallocGuard improves over the naive baselines by using Clang's structured AST
 and by checking source order. It intentionally remains simpler and faster than a
