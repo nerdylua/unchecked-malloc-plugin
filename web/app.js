@@ -13,9 +13,12 @@ const lineCountBadge = document.getElementById('line-count');
 const warningCountBadge = document.getElementById('warning-count');
 const statusText = document.getElementById('status-text');
 const statusStats = document.getElementById('status-stats');
+const astInspector = document.getElementById('ast-inspector');
+const fitAstButton = document.getElementById('ast-fit-btn');
 
 let presets = [];
 let currentAstData = null;
+let astState = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     updateLineNumbers();
@@ -52,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     setupSvgPanZoom();
+    fitAstButton.addEventListener('click', () => fitAstGraph());
 });
 
 function switchTab(tab) {
@@ -59,6 +63,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
     document.getElementById(tab === 'results' ? 'results-content' : 'ast-content').classList.add('active');
+    if (tab === 'ast' && astState) requestAnimationFrame(() => fitAstGraph());
 }
 
 function switchAstView(view) {
@@ -248,295 +253,256 @@ function renderAstTree(data) {
     astTree.innerHTML = '';
     astSvg.innerHTML = '';
 
-    if (data.error || !data.tree) {
+    if (data.error || !data.tree || !data.tree.children || data.tree.children.length === 0) {
+        astState = null;
         astEmpty.style.display = '';
         astViews.style.display = 'none';
-        return;
-    }
-
-    const filtered = filterBuiltins(data.tree);
-    if (!filtered || !filtered.children || filtered.children.length === 0) {
-        astEmpty.style.display = '';
-        astViews.style.display = 'none';
+        astInspector.innerHTML = '<span class="ast-inspector-placeholder">No source AST is available for this input.</span>';
         return;
     }
 
     astEmpty.style.display = 'none';
     astViews.style.display = 'flex';
 
-    currentAstData = filtered;
-    astTree.appendChild(buildListNode(filtered, true));
-    renderSvgTree(filtered);
+    currentAstData = data.tree;
+    astState = {
+        rawTree: data.tree,
+        selectedId: null,
+        positions: new Map(),
+        graphSize: { width: 0, height: 0 }
+    };
+    renderAstExplorer(true);
 }
 
-function filterBuiltins(node) {
-    if (!node) return null;
+const AST_H_GAP = 24;
+const AST_V_GAP = 42;
+const AST_PADDING = 30;
+const AST_MAX_NODE_WIDTH = 280;
+const astMeasureCanvas = document.createElement('canvas');
+const astMeasureContext = astMeasureCanvas.getContext('2d');
 
-    const filtered = { type: node.type, detail: node.detail, children: [] };
+function renderAstExplorer(resetView) {
+    if (!astState) return;
+    const tree = astState.rawTree;
+    astTree.innerHTML = '';
+    astTree.appendChild(buildListNode(tree, true));
+    renderSvgTree(tree, resetView);
+    renderInspector(findAstNode(tree, astState.selectedId));
+}
 
-    if (node.children) {
-        for (const child of node.children) {
-            if (child.type === 'TypedefDecl' && child.detail && child.detail.includes('implicit')) continue;
-            if (child.type === 'RecordDecl' && child.detail && child.detail.includes('implicit')) continue;
-            if (child.detail && child.detail.includes('__builtin')) continue;
-            const fc = filterBuiltins(child);
-            if (fc) filtered.children.push(fc);
-        }
+function findAstNode(node, id) {
+    if (!id) return null;
+    if (node.id === id) return node;
+    for (const child of node.children || []) {
+        const found = findAstNode(child, id);
+        if (found) return found;
     }
-
-    return filtered;
+    return null;
 }
 
-function getNodeCategory(type) {
-    if (type.endsWith('Decl')) return 'decl';
-    if (type.endsWith('Stmt')) return 'stmt';
-    if (type.endsWith('Expr') || type.endsWith('Literal') || type.endsWith('Operator')) return 'expr';
-    if (type.endsWith('Type') || type.includes('Cast')) return 'type';
-    return 'other';
+function selectAstNode(node) {
+    astState.selectedId = node.id;
+    renderAstExplorer(false);
 }
 
-const HIGHLIGHT_TYPES = ['CallExpr', 'VarDecl', 'UnaryOperator', 'ArraySubscriptExpr', 'MemberExpr', 'IfStmt'];
-
-const CATEGORY_COLORS = {
-    decl: { fill: '#fdf0ec', stroke: '#cc785c', text: '#9b5b45' },
-    stmt: { fill: '#fdf6e3', stroke: '#d4a017', text: '#9b6f08' },
-    expr: { fill: '#eef8ef', stroke: '#5db872', text: '#2f8b45' },
-    type: { fill: '#edf7f4', stroke: '#5db8a6', text: '#2b7d70' },
-    other: { fill: '#f5f0e8', stroke: '#ccc5b9', text: '#6c6a64' }
-};
-
-const HIGHLIGHT_COLORS = { fill: '#faece8', stroke: '#c64545', text: '#a93434' };
-
-// --- List view (indented tree) ---
+// --- List view ---
 
 function buildListNode(node, isRoot) {
     const el = document.createElement('div');
     el.className = `ast-node${isRoot ? ' ast-node-root' : ''}`;
-
     const hasChildren = node.children && node.children.length > 0;
-    const category = getNodeCategory(node.type);
-    const isHighlight = HIGHLIGHT_TYPES.includes(node.type);
 
-    const header = document.createElement('div');
-    header.className = 'ast-node-header';
-
-    const toggle = document.createElement('span');
-    toggle.className = `ast-toggle${hasChildren ? '' : ' leaf'}`;
-    toggle.textContent = hasChildren ? '\u25BC' : '';
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = `ast-node-header${astState.selectedId === node.id ? ' selected' : ''}`;
+    header.innerHTML = '<span class="ast-toggle leaf"></span>';
 
     const typeSpan = document.createElement('span');
-    typeSpan.className = `ast-type ${category}${isHighlight ? ' highlight' : ''}`;
-    typeSpan.textContent = node.type;
-
+    typeSpan.className = `ast-type ${node.category || 'other'}`;
+    typeSpan.textContent = node.label;
     const detailSpan = document.createElement('span');
     detailSpan.className = 'ast-detail';
-    detailSpan.innerHTML = formatDetail(node.detail);
-
-    header.appendChild(toggle);
-    header.appendChild(typeSpan);
-    header.appendChild(detailSpan);
+    detailSpan.textContent = node.summary || node.kind;
+    header.append(typeSpan, detailSpan);
+    header.addEventListener('click', () => selectAstNode(node));
     el.appendChild(header);
 
     if (hasChildren) {
         const childContainer = document.createElement('div');
         childContainer.className = 'ast-children';
-
-        node.children.forEach(child => {
-            childContainer.appendChild(buildListNode(child, false));
-        });
-
+        node.children.forEach(child => childContainer.appendChild(buildListNode(child, false)));
         el.appendChild(childContainer);
-
-        toggle.addEventListener('click', () => {
-            const collapsed = childContainer.classList.toggle('collapsed');
-            toggle.textContent = collapsed ? '\u25B6' : '\u25BC';
-        });
     }
-
     return el;
-}
-
-function formatDetail(detail) {
-    if (!detail) return '';
-    return escapeHtml(detail)
-        .replace(/'([^']+)'/g, '\'<span class="ast-name">$1</span>\'')
-        .replace(/\b(malloc|calloc|realloc)\b/g, '<span class="ast-name">$1</span>');
 }
 
 // --- SVG graph view ---
 
-const NODE_W = 110;
-const NODE_H = 32;
-const H_GAP = 8;
-const V_GAP = 40;
-const PADDING = 30;
-const MAX_DEPTH = 5;
+function wrapAstText(text, maxWidth, font) {
+    if (!text) return [];
+    astMeasureContext.font = font;
+    const words = String(text).split(/\s+/);
+    const lines = [];
+    let line = '';
+    words.forEach(word => {
+        const pieces = [];
+        let remaining = word;
+        while (remaining && astMeasureContext.measureText(remaining).width > maxWidth) {
+            let end = remaining.length - 1;
+            while (end > 1 && astMeasureContext.measureText(remaining.slice(0, end)).width > maxWidth) end -= 1;
+            pieces.push(remaining.slice(0, end));
+            remaining = remaining.slice(end);
+        }
+        pieces.push(remaining);
+        pieces.forEach(piece => {
+            const trial = line ? `${line} ${piece}` : piece;
+            if (line && astMeasureContext.measureText(trial).width > maxWidth) {
+                lines.push(line);
+                line = piece;
+            } else {
+                line = trial;
+            }
+        });
+    });
+    if (line) lines.push(line);
+    return lines;
+}
 
-function renderSvgTree(tree) {
+function measureAstNodes(node, depth, levelHeights) {
+    const labelLines = wrapAstText(node.label, AST_MAX_NODE_WIDTH - 36, '600 12px JetBrains Mono');
+    const summaryLines = wrapAstText(node.summary || node.kind, AST_MAX_NODE_WIDTH - 36, '11px JetBrains Mono');
+    astMeasureContext.font = '600 12px JetBrains Mono';
+    const labelWidth = Math.max(...labelLines.map(line => astMeasureContext.measureText(line).width), 0);
+    astMeasureContext.font = '11px JetBrains Mono';
+    const summaryWidth = Math.max(...summaryLines.map(line => astMeasureContext.measureText(line).width), 0);
+    const textWidth = Math.max(
+        labelWidth,
+        summaryWidth,
+        120
+    );
+    node.render = {
+        labelLines,
+        summaryLines,
+        w: Math.min(AST_MAX_NODE_WIDTH, Math.max(156, Math.ceil(textWidth) + 36)),
+        h: 22 + labelLines.length * 16 + summaryLines.length * 14
+    };
+    levelHeights[depth] = Math.max(levelHeights[depth] || 0, node.render.h);
+    node.children.forEach(child => measureAstNodes(child, depth + 1, levelHeights));
+}
+
+function layoutAstTree(node, depth, levelOffsets) {
+    const children = node.children.map(child => layoutAstTree(child, depth + 1, levelOffsets));
+    const childrenWidth = children.length
+        ? children.reduce((sum, child) => sum + child.totalW, 0) + (children.length - 1) * AST_H_GAP
+        : 0;
+    const totalW = Math.max(node.render.w, childrenWidth);
+    let offset = (totalW - childrenWidth) / 2;
+    children.forEach(child => {
+        shiftAstX(child, offset);
+        offset += child.totalW + AST_H_GAP;
+    });
+    return { ...node, x: (totalW - node.render.w) / 2, y: levelOffsets[depth], totalW, children };
+}
+
+function shiftAstX(node, dx) {
+    node.x += dx;
+    node.children.forEach(child => shiftAstX(child, dx));
+}
+
+function renderSvgTree(tree, resetView) {
+    const levelHeights = [];
+    measureAstNodes(tree, 0, levelHeights);
+    const levelOffsets = [];
+    let y = 0;
+    levelHeights.forEach(height => { levelOffsets.push(y); y += height + AST_V_GAP; });
+    const laid = layoutAstTree(tree, 0, levelOffsets);
+    const totalW = laid.totalW + AST_PADDING * 2;
+    const totalH = y - AST_V_GAP + AST_PADDING * 2;
+    const previousPositions = astState.positions;
+    astState.positions = new Map();
+    astState.graphSize = { width: totalW, height: totalH };
+
     astSvg.innerHTML = '';
-
-    const trimmed = trimForGraph(tree, 0);
-    const laid = layoutTree(trimmed, 0);
-    const totalW = laid.totalW + PADDING * 2;
-    const totalH = laid.totalH + PADDING * 2;
-
-    astSvg.removeAttribute('viewBox');
     astSvg.setAttribute('width', totalW);
     astSvg.setAttribute('height', totalH);
-    astSvg.style.width = totalW + 'px';
-    astSvg.style.height = totalH + 'px';
-
-    const g = svgEl('g', { transform: `translate(${PADDING}, ${PADDING})` });
-
-    drawEdges(g, laid);
-    drawNodes(g, laid);
-
-    astSvg.appendChild(g);
-
-    requestAnimationFrame(() => resetPanZoom(totalW, totalH));
+    astSvg.style.width = `${totalW}px`;
+    astSvg.style.height = `${totalH}px`;
+    const graph = svgEl('g', { transform: `translate(${AST_PADDING}, ${AST_PADDING})` });
+    drawAstEdges(graph, laid);
+    drawAstNodes(graph, laid, previousPositions);
+    astSvg.appendChild(graph);
+    if (resetView) requestAnimationFrame(() => fitAstGraph());
 }
 
-function trimForGraph(node, depth) {
-    if (depth >= MAX_DEPTH) {
-        const childCount = (node.children && node.children.length) || 0;
-        return {
-            type: node.type,
-            detail: childCount > 0 ? `+${childCount} more` : (node.detail || ''),
-            children: []
-        };
-    }
-
-    return {
-        type: node.type,
-        detail: node.detail || '',
-        children: (node.children || []).map(c => trimForGraph(c, depth + 1))
-    };
-}
-
-function layoutTree(node, depth) {
-    const hasChildren = node.children && node.children.length > 0;
-
-    if (!hasChildren) {
-        return {
-            type: node.type,
-            detail: node.detail || '',
-            x: 0,
-            y: depth * (NODE_H + V_GAP),
-            w: NODE_W,
-            totalW: NODE_W,
-            totalH: depth * (NODE_H + V_GAP) + NODE_H,
-            children: []
-        };
-    }
-
-    const kids = node.children.map(c => layoutTree(c, depth + 1));
-    const childrenWidth = kids.reduce((sum, k) => sum + k.totalW, 0) + (kids.length - 1) * H_GAP;
-    const totalW = Math.max(NODE_W, childrenWidth);
-
-    let cx = (totalW - childrenWidth) / 2;
-    for (const kid of kids) {
-        kid.x += cx;
-        shiftX(kid, cx);
-        cx += kid.totalW + H_GAP;
-    }
-
-    const maxChildH = Math.max(...kids.map(k => k.totalH));
-
-    return {
-        type: node.type,
-        detail: node.detail || '',
-        x: (totalW - NODE_W) / 2,
-        y: depth * (NODE_H + V_GAP),
-        w: NODE_W,
-        totalW,
-        totalH: Math.max(maxChildH, depth * (NODE_H + V_GAP) + NODE_H),
-        children: kids
-    };
-}
-
-function shiftX(node, dx) {
-    if (!node.children) return;
-    for (const kid of node.children) {
-        kid.x += dx;
-        shiftX(kid, dx);
-    }
-}
-
-function drawEdges(parent, node) {
-    if (!node.children) return;
-
-    const x1 = node.x + NODE_W / 2;
-    const y1 = node.y + NODE_H;
-
-    for (const kid of node.children) {
-        const x2 = kid.x + NODE_W / 2;
-        const y2 = kid.y;
+function drawAstEdges(parent, node) {
+    node.children.forEach(child => {
+        const x1 = node.x + node.render.w / 2;
+        const y1 = node.y + node.render.h;
+        const x2 = child.x + child.render.w / 2;
+        const y2 = child.y;
         const midY = (y1 + y2) / 2;
-
-        const path = svgEl('path', {
+        parent.appendChild(svgEl('path', {
             d: `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`,
-            fill: 'none',
-            stroke: '#ccc5b9',
-            'stroke-width': 1.5,
-            opacity: 0.6
-        });
-        parent.appendChild(path);
-
-        drawEdges(parent, kid);
-    }
+            class: 'ast-edge', fill: 'none'
+        }));
+        drawAstEdges(parent, child);
+    });
 }
 
-function drawNodes(parent, node) {
-    const category = getNodeCategory(node.type);
-    const isHighlight = HIGHLIGHT_TYPES.includes(node.type);
-    const colors = isHighlight ? HIGHLIGHT_COLORS : CATEGORY_COLORS[category];
-
-    const rect = svgEl('rect', {
-        x: node.x,
-        y: node.y,
-        width: NODE_W,
-        height: NODE_H,
-        rx: 7,
-        ry: 7,
-        fill: colors.fill,
-        stroke: colors.stroke,
-        'stroke-width': isHighlight ? 2 : 1.2
+function drawAstNodes(parent, node, previousPositions) {
+    const group = svgEl('g', {
+        class: `ast-graph-node ${node.category || 'other'}${astState.selectedId === node.id ? ' selected' : ''}`,
+        role: 'button', tabindex: '0', 'aria-label': `${node.label}: ${node.summary || node.kind}`
     });
-    parent.appendChild(rect);
-
-    const label = node.type.length > 14 ? node.type.substring(0, 12) + '..' : node.type;
-    const text = svgEl('text', {
-        x: node.x + NODE_W / 2,
-        y: node.y + (node.detail ? 13 : 19),
-        'text-anchor': 'middle',
-        fill: colors.text,
-        'font-family': '"JetBrains Mono", monospace',
-        'font-size': 10,
-        'font-weight': 600
+    const targetX = node.x;
+    const targetY = node.y;
+    const previous = previousPositions.get(node.id);
+    group.style.transform = `translate(${previous ? previous.x : targetX}px, ${previous ? previous.y : targetY}px)`;
+    astState.positions.set(node.id, { x: targetX, y: targetY });
+    group.appendChild(svgEl('title')).textContent = `${node.label}\n${node.kind}\n${node.summary || ''}`;
+    group.appendChild(svgEl('rect', { width: node.render.w, height: node.render.h, rx: 8, ry: 8 }));
+    let textY = 18;
+    node.render.labelLines.forEach(line => {
+        const text = svgEl('text', { x: 14, y: textY, class: 'ast-graph-label' });
+        text.textContent = line;
+        group.appendChild(text);
+        textY += 16;
     });
-    text.textContent = label;
-    parent.appendChild(text);
-
-    if (node.detail) {
-        let sub = node.detail.replace(/'/g, '');
-        if (sub.length > 16) sub = sub.substring(0, 14) + '..';
-        const subText = svgEl('text', {
-            x: node.x + NODE_W / 2,
-            y: node.y + 26,
-            'text-anchor': 'middle',
-            fill: '#8e8b82',
-            'font-family': '"JetBrains Mono", monospace',
-            'font-size': 8
-        });
-        subText.textContent = sub;
-        parent.appendChild(subText);
-    }
-
-    if (node.children) {
-        for (const kid of node.children) {
-            drawNodes(parent, kid);
+    node.render.summaryLines.forEach(line => {
+        const text = svgEl('text', { x: 14, y: textY, class: 'ast-graph-summary' });
+        text.textContent = line;
+        group.appendChild(text);
+        textY += 14;
+    });
+    group.addEventListener('click', event => {
+        event.stopPropagation();
+        selectAstNode(node);
+    });
+    group.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            selectAstNode(node);
         }
+    });
+    parent.appendChild(group);
+    requestAnimationFrame(() => { group.style.transform = `translate(${targetX}px, ${targetY}px)`; });
+    node.children.forEach(child => drawAstNodes(parent, child, previousPositions));
+}
+
+function renderInspector(node) {
+    if (!node) {
+        astInspector.innerHTML = '<span class="ast-inspector-placeholder">Select a node to inspect its Clang details.</span>';
+        return;
     }
+    const loc = node.location || {};
+    const position = loc.line ? `Line ${loc.line}:${loc.column || 1}` : 'No source location';
+    const metadata = JSON.stringify(node.metadata || {}, null, 2);
+    astInspector.innerHTML = `
+        <div class="ast-inspector-title">${escapeHtml(node.label)}</div>
+        <div class="ast-inspector-kind">${escapeHtml(node.kind)}</div>
+        <div class="ast-inspector-location">${escapeHtml(position)}</div>
+        ${node.sourceExcerpt ? `<code class="ast-source-excerpt">${escapeHtml(node.sourceExcerpt)}</code>` : ''}
+        <details><summary>Full Clang metadata</summary><pre>${escapeHtml(metadata)}</pre></details>`;
 }
 
 function svgEl(tag, attrs) {
@@ -579,8 +545,12 @@ function setupSvgPanZoom() {
 
     container.addEventListener('wheel', (e) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.min(3, Math.max(0.1, zoom * delta));
+        const modeScale = e.deltaMode === 1 ? 16 : (e.deltaMode === 2 ? container.clientHeight : 1);
+        const normalizedDelta = Math.max(-400, Math.min(400, e.deltaY * modeScale));
+        // Exponential scaling makes frequent, small touchpad events precise
+        // while retaining a useful zoom step for a traditional mouse wheel.
+        const zoomFactor = Math.exp(-normalizedDelta * 0.0014);
+        const newZoom = Math.min(3, Math.max(0.1, zoom * zoomFactor));
 
         const rect = container.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -598,9 +568,12 @@ function applyTransform() {
     astSvg.style.transformOrigin = '0 0';
 }
 
-function resetPanZoom(svgW, svgH) {
+function fitAstGraph() {
     const container = document.getElementById('ast-graph-view');
     if (!container) return;
+
+    const { width: svgW, height: svgH } = astState ? astState.graphSize : { width: 0, height: 0 };
+    if (!svgW || !svgH) return;
 
     const cw = container.clientWidth || 500;
     const ch = container.clientHeight || 400;
@@ -640,6 +613,8 @@ function clearResults() {
     astSvg.innerHTML = '';
     astEmpty.style.display = '';
     astViews.style.display = 'none';
+    astState = null;
+    astInspector.innerHTML = '<span class="ast-inspector-placeholder">Select a node to inspect its Clang details.</span>';
     warningCountBadge.textContent = 'Ready';
     warningCountBadge.className = 'panel-badge';
     if (statusStats) statusStats.textContent = '';

@@ -76,16 +76,22 @@ void example() {
                     <p>Click <strong>Analyze</strong> to view the AST</p>
                 </div>
                 <div id="ast-views" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
-                    <div class="view-toggle">
-                        <button class="view-btn active" data-view="graph" onclick="switchAstView('graph')">Graph</button>
-                        <button class="view-btn" data-view="list" onclick="switchAstView('list')">List</button>
+                    <div class="ast-toolbar">
+                        <div class="view-toggle">
+                            <button class="view-btn active" data-view="graph" onclick="switchAstView('graph')">Graph</button>
+                            <button class="view-btn" data-view="list" onclick="switchAstView('list')">List</button>
+                        </div>
+                        <button id="ast-fit-btn" class="view-btn" type="button">Fit graph</button>
                     </div>
-                    <div id="ast-graph-view" class="ast-view active">
-                        <svg id="ast-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+                    <div id="ast-graph-view" class="ast-view active" aria-label="Expandable abstract syntax tree graph">
+                        <svg id="ast-svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Abstract syntax tree"></svg>
                     </div>
                     <div id="ast-list-view" class="ast-view">
                         <div id="ast-tree"></div>
                     </div>
+                    <aside id="ast-inspector" class="ast-inspector" aria-live="polite">
+                        <span class="ast-inspector-placeholder">Select a node to inspect its Clang details.</span>
+                    </aside>
                 </div>
             </div>
         </section>
